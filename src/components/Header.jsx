@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import CartDrawer from './CartDrawer';
 
 const navItems = [
-  'SHOP ALL', 'BESTSELLERS', 'COMPLEXION', 'EYE', 'LIP + CHEEK', 'SKINCARE', 'SETS', 'TOOLS', 'FIND MY SHADE', 'REWARDS'
+  'SHOP ALL', 'BESTSELLERS', 'COMPLEXION', 'EYE', 'LIP + CHEEK', 'SKINCARE', 'SETS', 'TOOLS', 'REWARDS'
 ];
 
 export default function Header() {
