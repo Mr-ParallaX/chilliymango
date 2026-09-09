@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { useRef } from 'react';
 
 const categories = [
-  { id: 1, name: "Bestsellers", image: "/assets/Category_Tile-1.jpg" },
-  { id: 2, name: "Complexion", image: "/assets/Category_Tile-2.jpg" },
-  { id: 3, name: "Lip + Cheek", image: "/assets/Category_Tile-3.jpg" },
-  { id: 4, name: "Skincare", image: "/assets/Category_Tile-4.jpg" },
-  { id: 5, name: "Eye", image: "/assets/Feature_Tile-2.jpg" },
-  { id: 6, name: "Sets", image: "/assets/Feature_Tile-4.jpg" }
+  { id: 1, name: "Bestsellers", image: "/assets/imgs/image1.jpeg" },
+  { id: 2, name: "Complexion", image: "/assets/imgs/image2.jpeg" },
+  { id: 3, name: "Lip + Cheek", image: "/assets/imgs/image3.jpeg" },
+  { id: 4, name: "Skincare", image: "/assets/imgs/image4.jpeg" },
+  { id: 5, name: "Eye", image: "/assets/imgs/image5.jpeg" },
+  { id: 6, name: "Sets", image: "/assets/imgs/image6.jpeg" }
 ];
 
 export default function CategoryGrid() {
@@ -49,19 +49,19 @@ export default function CategoryGrid() {
               key={category.id} 
               className="min-w-[200px] w-[60vw] sm:w-[calc(33.333%-16px)] lg:w-[calc(16.666%-16px)] flex-shrink-0 snap-start flex flex-col group/cat cursor-pointer"
             >
-              <div className="w-full aspect-[4/5] relative bg-[#f5f5f5] overflow-hidden rounded-sm group-hover/cat:opacity-95 transition-opacity">
-                {/* Overlay Text */}
-                <div className="absolute top-4 left-4 z-10">
-                  <h3 className="text-sm font-bold text-white group-hover/cat:underline shadow-sm">{category.name}</h3>
-                </div>
-                {/* Fallback gradient for readability */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent h-20 z-0"></div>
+              <div className="w-full aspect-[4/5] relative bg-gray-100 overflow-hidden rounded-sm">
                 <Image 
                   src={category.image} 
                   alt={category.name} 
                   fill 
-                  className="object-cover group-hover/cat:scale-105 transition-transform duration-700 z-[-1]"
+                  className="object-cover group-hover/cat:scale-105 transition-transform duration-700"
                 />
+                {/* Gradient for text contrast */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent h-24 pointer-events-none z-10" />
+                {/* Overlay Text */}
+                <div className="absolute top-4 left-4 z-20">
+                  <h3 className="text-sm font-bold text-white group-hover/cat:underline shadow-sm">{category.name}</h3>
+                </div>
               </div>
             </Link>
           ))}
