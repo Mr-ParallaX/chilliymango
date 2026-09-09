@@ -61,27 +61,28 @@ function ReelCard({
 }) {
   const videoRef = useRef(null);
 
-  // Sync muted property directly to DOM element (handles React muted attribute bug)
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.defaultMuted = true;
-      videoRef.current.muted = isMuted;
+  // Synchronously enforce muted property on DOM element to comply with browser autoplay policy
+  const setVideoRef = useCallback((video) => {
+    if (video) {
+      video.defaultMuted = true;
+      video.muted = isMuted;
     }
+    videoRef.current = video;
   }, [isMuted]);
 
-  // Video playback management: play when center active, pause when inactive
+  // Video playback: plays in a continuous loop when centered; pauses when leaving center
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     video.defaultMuted = true;
     video.muted = isMuted;
+    video.loop = true;
 
     if (isActive && !isAutoPlayPaused) {
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // Autoplay policy fallback: enforce muted and retry
           if (!video.muted) {
             video.muted = true;
             video.play().catch(() => {});
@@ -97,6 +98,7 @@ function ReelCard({
     const video = e.target;
     video.defaultMuted = true;
     video.muted = isMuted;
+    video.loop = true;
     if (isActive && !isAutoPlayPaused) {
       video.play().catch(() => {});
     } else {
@@ -124,7 +126,7 @@ function ReelCard({
     >
       {/* Real HTML5 Video Element */}
       <video
-        ref={videoRef}
+        ref={setVideoRef}
         src={reel.video}
         autoPlay
         muted={isMuted}
