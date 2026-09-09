@@ -41,11 +41,11 @@ const reelVideos = [
   },
 ];
 
-// Multi-copy replication for seamless infinite loop
+// Multi-copy replication for seamless infinite horizontal loop
 const COPIES = 7;
 const extendedReels = Array(COPIES).fill(reelVideos).flat();
 const N = reelVideos.length;
-const INITIAL_INDEX = N * 3 + 2; // Center card in middle repetition
+const INITIAL_INDEX = N * 3 + 2; // Middle repetition center card
 
 function ReelCard({
   reel,
@@ -61,16 +61,27 @@ function ReelCard({
 }) {
   const videoRef = useRef(null);
 
-  // Play active center video, pause inactive video
+  // Sync muted property directly to DOM element (handles React muted attribute bug)
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  // Video playback management: play when center active, pause when inactive
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    video.defaultMuted = true;
+    video.muted = isMuted;
+
     if (isActive && !isAutoPlayPaused) {
-      video.muted = isMuted;
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
+          // Autoplay policy fallback: enforce muted and retry
           if (!video.muted) {
             video.muted = true;
             video.play().catch(() => {});
@@ -82,14 +93,16 @@ function ReelCard({
     }
   }, [isActive, isAutoPlayPaused, isMuted]);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted;
+  const handleLoadedData = (e) => {
+    const video = e.target;
+    video.defaultMuted = true;
+    video.muted = isMuted;
+    if (isActive && !isAutoPlayPaused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
     }
-  }, [isMuted]);
-
-  // Only mount video tag within visible radius to keep performance buttery-smooth
-  const isWithinRenderRadius = distanceFromCenter <= 3;
+  };
 
   return (
     <div
@@ -100,7 +113,7 @@ function ReelCard({
         flexShrink: 0,
         marginRight: `${cardMetrics.gap}px`,
       }}
-      className={`relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
+      className={`relative rounded-2xl overflow-hidden cursor-pointer select-none bg-black transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
         ${isActive
           ? 'scale-100 sm:scale-[1.08] lg:scale-[1.12] z-30 opacity-100 shadow-[0_20px_45px_rgba(0,0,0,0.30)] ring-1 ring-black/5'
           : distanceFromCenter === 1
@@ -109,30 +122,28 @@ function ReelCard({
         }
       `}
     >
-      {/* Actual Video Content */}
-      {isWithinRenderRadius ? (
-        <video
-          ref={videoRef}
-          src={reel.video}
-          playsInline
-          muted={isMuted}
-          loop
-          preload="auto"
-          onLoadedMetadata={(e) => {
-            if (!isActive && e.target.currentTime === 0) {
-              e.target.currentTime = 0.1; // capture preview frame
-            }
-          }}
-          className="w-full h-full object-cover pointer-events-none"
-        />
-      ) : (
-        <div className="w-full h-full bg-[#1c1a19]" />
-      )}
+      {/* Real HTML5 Video Element */}
+      <video
+        ref={videoRef}
+        src={reel.video}
+        autoPlay
+        muted={isMuted}
+        loop
+        playsInline
+        preload="auto"
+        onLoadedData={handleLoadedData}
+        onError={(e) => {
+          console.error("Failed to load video:", reel.video, e);
+        }}
+        className="w-full h-full object-cover pointer-events-none"
+      >
+        <source src={reel.video} type="video/mp4" />
+      </video>
 
-      {/* Dark gradient overlay for bottom text contrast */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent z-10 pointer-events-none" />
+      {/* Bottom dark gradient for text legibility (only bottom portion of card) */}
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10 pointer-events-none" />
 
-      {/* Top Controls: Sound + Pause (Active card only) */}
+      {/* Controls (Sound & Pause) at Top Right - Active Card Only */}
       {isActive && (
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
           <button
@@ -247,13 +258,13 @@ export default function Reels() {
   const dragStartTimeRef = useRef(0);
   const hasMovedRef = useRef(false);
 
-  // Responsive card sizing
+  // Responsive card dimensions
   useEffect(() => {
     const updateMetrics = () => {
       if (typeof window === 'undefined') return;
       const w = window.innerWidth;
       if (w < 640) {
-        // Mobile: 1 main active card dominant with neighbor peeks
+        // Mobile: 1 dominant center card (~72vw), peek of side cards
         const cardW = Math.min(280, Math.max(240, Math.round(w * 0.72)));
         setCardMetrics({ width: cardW, gap: 14, height: 460 });
       } else if (w < 1024) {
@@ -272,23 +283,23 @@ export default function Reels() {
 
   const slotWidth = cardMetrics.width + cardMetrics.gap;
 
-  // The active center card is determined purely by physical center position
+  // Center video is physically determined by viewport position, even during dragging
   const activeCenterIndex = isDragging
     ? currentIndex + Math.round(-dragOffset / slotWidth)
     : currentIndex;
 
-  // Slow luxury automatic loop (advances every ~7 seconds)
+  // Auto-advance loop: stays ~7 seconds on each centered card, then smoothly advances
   useEffect(() => {
     if (isDragging || isHovered || isAutoPlayPaused) return;
 
-    const interval = setInterval(() => {
+    const timer = setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
     }, 7000);
 
-    return () => clearInterval(interval);
-  }, [isDragging, isHovered, isAutoPlayPaused]);
+    return () => clearTimeout(timer);
+  }, [currentIndex, isDragging, isHovered, isAutoPlayPaused]);
 
-  // Seamless infinite loop boundary adjustment
+  // Seamless infinite loop repositioning without animation glitch
   const handleTransitionEnd = useCallback((e) => {
     if (e.target !== trackRef.current) return;
 
@@ -301,7 +312,7 @@ export default function Reels() {
     }
   }, [currentIndex]);
 
-  // Re-enable transition after silent jump
+  // Re-enable smooth transition after silent position reset
   useEffect(() => {
     if (!isTransitioning) {
       const frame = requestAnimationFrame(() => {
@@ -311,7 +322,7 @@ export default function Reels() {
     }
   }, [isTransitioning]);
 
-  // Pointer / Drag interactions
+  // Pointer & Drag interactions
   const handlePointerDown = (clientX) => {
     dragStartXRef.current = clientX;
     dragStartTimeRef.current = Date.now();
@@ -336,11 +347,10 @@ export default function Reels() {
     const elapsed = Math.max(1, Date.now() - dragStartTimeRef.current);
     const velocity = delta / elapsed; // px/ms
 
-    // Determine target card based on drag distance and flick momentum
+    // Natural settle onto nearest card, accounting for swipe momentum
     let cardsMoved = Math.round(-delta / slotWidth);
 
-    // Quick swipe flick threshold
-    if (Math.abs(delta) > 30 && Math.abs(velocity) > 0.4 && cardsMoved === 0) {
+    if (Math.abs(delta) > 25 && Math.abs(velocity) > 0.35 && cardsMoved === 0) {
       cardsMoved = velocity < 0 ? 1 : -1;
     }
 
