@@ -3,63 +3,233 @@
 import Image from 'next/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-const reels = [
+const reelVideos = [
   { 
-    id: 1, 
-    image: "/assets/Category_Tile-2.jpg", 
-    product: "Skin Tint SPF 40", 
-    price: "$48", 
-    thumb: "/assets/Category_Tile-2.jpg" 
-  },
-  { 
-    id: 2, 
-    image: "/assets/455590ed7a0443be87f8e6bce00b679d.thumbnail.0000000000.jpg", 
-    product: "Skin Rewind Complexion Stick", 
-    price: "$50", 
-    thumb: "/assets/ILIA_SBSC_1N_TWILL_OPEN_GREY.jpg" 
-  },
-  { 
-    id: 3, 
-    image: "/assets/9b6789e8beb048ceba2802145f8a9d0e.thumbnail.0000000000.jpg", 
+    id: 'v1', 
+    video: "/assets/videos/v1.mp4", 
     product: "Super Serum Skin Tint SPF 40", 
     price: "$48", 
     thumb: "/assets/ILIA_Silo_Shot_Award_Seals_Final-grey-ST5.jpg" 
   },
   { 
-    id: 4, 
-    image: "/assets/Feature_Tile-2.jpg", 
-    product: "Lip Sketch Hydrating Crayon", 
-    price: "$27", 
-    thumb: "/assets/ILIA_2026_TLE_Trace_Open_Grey.jpg" 
+    id: 'v2', 
+    video: "/assets/videos/v2.mp4", 
+    product: "Skin Rewind Complexion Stick", 
+    price: "$50", 
+    thumb: "/assets/ILIA_SBSC_1N_TWILL_OPEN_GREY.jpg" 
   },
   { 
-    id: 5, 
-    image: "/assets/Category_Tile-4.jpg", 
-    product: "Limitless Lash Mascara", 
-    price: "$29", 
-    thumb: "/assets/Category_Tile-4.jpg" 
-  },
-  { 
-    id: 6, 
-    image: "/assets/Cornerstone_5c7be23d-9d5b-4a68-8864-c38700601c81.jpg", 
+    id: 'v3', 
+    video: "/assets/videos/v3.mp4", 
     product: "Eye Stylus Shadow Stick", 
     price: "$33", 
     thumb: "/assets/ILIA_2026_TLE_Trace_Open_Grey.jpg" 
   },
   { 
-    id: 7, 
-    image: "/assets/Category_Tile-3.jpg", 
-    product: "Soft Focus Blurring Powder", 
-    price: "$36", 
-    thumb: "/assets/ILIA_2026_SOFT-FOCUS-POWDER_OPEN-SPONGE_SHADE-1_GREY.jpg" 
-  }
+    id: 'v4', 
+    video: "/assets/videos/v5.mp4", 
+    product: "Lip Sketch Hydrating Crayon", 
+    price: "$27", 
+    thumb: "/assets/ILIA_2026_OVERGLAZE_LIPGLOSS_OPEN_MOTIF_GREY_469160fa-5dab-4d70-a02a-7b70d5ad2f11.jpg" 
+  },
+  { 
+    id: 'v5', 
+    video: "/assets/videos/v6.mp4", 
+    product: "Limitless Lash Mascara", 
+    price: "$29", 
+    thumb: "/assets/Category_Tile-4.jpg" 
+  },
 ];
 
-// Replicate array to enable seamless infinite horizontal looping
-const COPIES = 5;
-const extendedReels = Array(COPIES).fill(reels).flat();
-const N = reels.length;
-const INITIAL_INDEX = N * 2 + 2; // Super Serum Skin Tint SPF 40 in middle block
+// Multi-copy replication for seamless infinite loop
+const COPIES = 7;
+const extendedReels = Array(COPIES).fill(reelVideos).flat();
+const N = reelVideos.length;
+const INITIAL_INDEX = N * 3 + 2; // Center card in middle repetition
+
+function ReelCard({
+  reel,
+  idx,
+  isActive,
+  distanceFromCenter,
+  cardMetrics,
+  isMuted,
+  isAutoPlayPaused,
+  onToggleMute,
+  onTogglePause,
+  onClick,
+}) {
+  const videoRef = useRef(null);
+
+  // Play active center video, pause inactive video
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isActive && !isAutoPlayPaused) {
+      video.muted = isMuted;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          if (!video.muted) {
+            video.muted = true;
+            video.play().catch(() => {});
+          }
+        });
+      }
+    } else {
+      video.pause();
+    }
+  }, [isActive, isAutoPlayPaused, isMuted]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  // Only mount video tag within visible radius to keep performance buttery-smooth
+  const isWithinRenderRadius = distanceFromCenter <= 3;
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        width: `${cardMetrics.width}px`,
+        height: `${cardMetrics.height}px`,
+        flexShrink: 0,
+        marginRight: `${cardMetrics.gap}px`,
+      }}
+      className={`relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
+        ${isActive
+          ? 'scale-100 sm:scale-[1.08] lg:scale-[1.12] z-30 opacity-100 shadow-[0_20px_45px_rgba(0,0,0,0.30)] ring-1 ring-black/5'
+          : distanceFromCenter === 1
+            ? 'scale-[0.88] sm:scale-[0.90] z-20 opacity-85 hover:opacity-100 hover:scale-[0.92] shadow-lg'
+            : 'scale-[0.82] sm:scale-[0.84] z-10 opacity-75 hover:opacity-90 shadow-md'
+        }
+      `}
+    >
+      {/* Actual Video Content */}
+      {isWithinRenderRadius ? (
+        <video
+          ref={videoRef}
+          src={reel.video}
+          playsInline
+          muted={isMuted}
+          loop
+          preload="auto"
+          onLoadedMetadata={(e) => {
+            if (!isActive && e.target.currentTime === 0) {
+              e.target.currentTime = 0.1; // capture preview frame
+            }
+          }}
+          className="w-full h-full object-cover pointer-events-none"
+        />
+      ) : (
+        <div className="w-full h-full bg-[#1c1a19]" />
+      )}
+
+      {/* Dark gradient overlay for bottom text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent z-10 pointer-events-none" />
+
+      {/* Top Controls: Sound + Pause (Active card only) */}
+      {isActive && (
+        <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMute();
+            }}
+            className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition cursor-pointer shadow-sm"
+            aria-label={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePause();
+            }}
+            className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition cursor-pointer shadow-sm"
+            aria-label={isAutoPlayPaused ? "Play" : "Pause"}
+          >
+            {isAutoPlayPaused ? (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="6 4 20 12 6 20 6 4" />
+              </svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="4" width="4" height="16" rx="1" />
+                <rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Bottom Product Info Overlay */}
+      <div className="absolute bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex items-center gap-2.5 sm:gap-3 z-20 text-white pointer-events-auto">
+        <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white rounded-md overflow-hidden flex-shrink-0 relative shadow-md p-0.5">
+          <Image
+            src={reel.thumb}
+            alt={reel.product}
+            fill
+            sizes="44px"
+            draggable={false}
+            className="object-contain p-0.5"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] sm:text-[12px] font-bold leading-tight truncate text-white drop-shadow-sm">
+            {reel.product}
+          </p>
+          <p className="text-[11px] sm:text-[12px] font-semibold text-white/90 mt-0.5">
+            {reel.price}
+          </p>
+        </div>
+
+        {isActive ? (
+          <div className="flex flex-col items-center gap-1 flex-shrink-0">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80">
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+            <button
+              type="button"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-white/60 flex items-center justify-center hover:bg-white hover:text-black transition-all text-base font-light backdrop-blur-sm shadow-sm"
+              aria-label="Add product"
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:bg-white hover:text-black transition-all text-base font-light backdrop-blur-sm shadow-sm"
+            aria-label="Select product"
+          >
+            +
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Reels() {
   const [currentIndex, setCurrentIndex] = useState(INITIAL_INDEX);
@@ -74,6 +244,7 @@ export default function Reels() {
 
   const trackRef = useRef(null);
   const dragStartXRef = useRef(0);
+  const dragStartTimeRef = useRef(0);
   const hasMovedRef = useRef(false);
 
   // Responsive card sizing
@@ -101,13 +272,18 @@ export default function Reels() {
 
   const slotWidth = cardMetrics.width + cardMetrics.gap;
 
-  // Auto-play at slow luxury pace
+  // The active center card is determined purely by physical center position
+  const activeCenterIndex = isDragging
+    ? currentIndex + Math.round(-dragOffset / slotWidth)
+    : currentIndex;
+
+  // Slow luxury automatic loop (advances every ~7 seconds)
   useEffect(() => {
     if (isDragging || isHovered || isAutoPlayPaused) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => prev + 1);
-    }, 4500);
+    }, 7000);
 
     return () => clearInterval(interval);
   }, [isDragging, isHovered, isAutoPlayPaused]);
@@ -116,16 +292,16 @@ export default function Reels() {
   const handleTransitionEnd = useCallback((e) => {
     if (e.target !== trackRef.current) return;
 
-    if (currentIndex >= N * 3) {
+    if (currentIndex >= N * 5) {
       setIsTransitioning(false);
-      setCurrentIndex((prev) => prev - N);
+      setCurrentIndex((prev) => prev - N * 2);
     } else if (currentIndex < N * 2) {
       setIsTransitioning(false);
-      setCurrentIndex((prev) => prev + N);
+      setCurrentIndex((prev) => prev + N * 2);
     }
   }, [currentIndex]);
 
-  // Re-enable smooth transition after silent jump
+  // Re-enable transition after silent jump
   useEffect(() => {
     if (!isTransitioning) {
       const frame = requestAnimationFrame(() => {
@@ -138,6 +314,7 @@ export default function Reels() {
   // Pointer / Drag interactions
   const handlePointerDown = (clientX) => {
     dragStartXRef.current = clientX;
+    dragStartTimeRef.current = Date.now();
     hasMovedRef.current = false;
     setIsDragging(true);
     setDragOffset(0);
@@ -154,15 +331,24 @@ export default function Reels() {
 
   const handlePointerUp = () => {
     if (!isDragging) return;
-    setIsDragging(false);
 
-    const threshold = Math.max(50, cardMetrics.width * 0.18);
-    if (dragOffset < -threshold) {
-      setCurrentIndex((prev) => prev + 1);
-    } else if (dragOffset > threshold) {
-      setCurrentIndex((prev) => prev - 1);
+    const delta = dragOffset;
+    const elapsed = Math.max(1, Date.now() - dragStartTimeRef.current);
+    const velocity = delta / elapsed; // px/ms
+
+    // Determine target card based on drag distance and flick momentum
+    let cardsMoved = Math.round(-delta / slotWidth);
+
+    // Quick swipe flick threshold
+    if (Math.abs(delta) > 30 && Math.abs(velocity) > 0.4 && cardsMoved === 0) {
+      cardsMoved = velocity < 0 ? 1 : -1;
     }
+
+    const targetIndex = currentIndex + cardsMoved;
+
+    setIsDragging(false);
     setDragOffset(0);
+    setCurrentIndex(targetIndex);
   };
 
   const handleCardClick = (idx) => {
@@ -186,7 +372,7 @@ export default function Reels() {
       className="py-16 md:py-24 w-full overflow-hidden bg-white select-none touch-pan-y"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
-        handlePointerUp();
+        if (isDragging) handlePointerUp();
         setIsHovered(false);
       }}
     >
@@ -207,139 +393,23 @@ export default function Reels() {
           className={`flex items-center will-change-transform ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         >
           {extendedReels.map((reel, idx) => {
-            const isActive = idx === currentIndex;
-            const distance = Math.abs(idx - currentIndex);
-            const isFar = distance > 5;
+            const isActive = idx === activeCenterIndex;
+            const distanceFromCenter = Math.abs(idx - activeCenterIndex);
 
             return (
-              <div
+              <ReelCard
                 key={`${reel.id}-${idx}`}
+                reel={reel}
+                idx={idx}
+                isActive={isActive}
+                distanceFromCenter={distanceFromCenter}
+                cardMetrics={cardMetrics}
+                isMuted={isMuted}
+                isAutoPlayPaused={isAutoPlayPaused}
+                onToggleMute={() => setIsMuted((m) => !m)}
+                onTogglePause={() => setIsAutoPlayPaused((p) => !p)}
                 onClick={() => handleCardClick(idx)}
-                style={{
-                  width: `${cardMetrics.width}px`,
-                  height: `${cardMetrics.height}px`,
-                  flexShrink: 0,
-                  marginRight: `${cardMetrics.gap}px`,
-                }}
-                className={`relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
-                  ${isActive
-                    ? 'scale-100 sm:scale-[1.08] lg:scale-[1.12] z-30 opacity-100 shadow-[0_20px_45px_rgba(0,0,0,0.28)] ring-1 ring-black/5'
-                    : 'scale-[0.88] sm:scale-[0.90] z-10 opacity-80 hover:opacity-95 hover:scale-[0.92] shadow-md'
-                  }
-                `}
-              >
-                {/* Background UGC Image */}
-                {!isFar && (
-                  <Image
-                    src={reel.image}
-                    alt={reel.product}
-                    fill
-                    sizes="(max-width: 640px) 280px, (max-width: 1024px) 240px, 320px"
-                    priority={distance <= 1}
-                    draggable={false}
-                    className="object-cover pointer-events-none"
-                  />
-                )}
-
-                {/* Gradient Overlay for bottom text contrast */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent z-10 pointer-events-none"></div>
-
-                {/* Controls (Sound & Pause) at Top Right - Active Card Only */}
-                {isActive && (
-                  <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsMuted(!isMuted);
-                      }}
-                      className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition cursor-pointer shadow-sm"
-                      aria-label={isMuted ? "Unmute" : "Mute"}
-                    >
-                      {isMuted ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="1" y1="1" x2="23" y2="23"></line>
-                          <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
-                          <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
-                          <line x1="12" y1="19" x2="12" y2="23"></line>
-                          <line x1="8" y1="23" x2="16" y2="23"></line>
-                        </svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsAutoPlayPaused(!isAutoPlayPaused);
-                      }}
-                      className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition cursor-pointer shadow-sm"
-                      aria-label={isAutoPlayPaused ? "Play" : "Pause"}
-                    >
-                      {isAutoPlayPaused ? (
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                          <polygon points="6 4 20 12 6 20 6 4"></polygon>
-                        </svg>
-                      ) : (
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-                          <rect x="14" y="4" width="4" height="16" rx="1"></rect>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {/* Bottom Product Info Overlay */}
-                <div className="absolute bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex items-center gap-2.5 sm:gap-3 z-20 text-white">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white rounded-md overflow-hidden flex-shrink-0 relative shadow-md p-0.5">
-                    <Image
-                      src={reel.thumb}
-                      alt={reel.product}
-                      fill
-                      sizes="44px"
-                      draggable={false}
-                      className="object-contain p-0.5"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] sm:text-[12px] font-bold leading-tight truncate text-white drop-shadow-sm">
-                      {reel.product}
-                    </p>
-                    <p className="text-[11px] sm:text-[12px] font-semibold text-white/90 mt-0.5">
-                      {reel.price}
-                    </p>
-                  </div>
-
-                  {isActive ? (
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80">
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
-                      <button
-                        type="button"
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-white/60 flex items-center justify-center hover:bg-white hover:text-black transition-all text-base font-light backdrop-blur-sm shadow-sm"
-                        aria-label="Add product"
-                      >
-                        +
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 rounded-full border border-white/60 flex items-center justify-center hover:bg-white hover:text-black transition-all text-base font-light backdrop-blur-sm shadow-sm"
-                      aria-label="Select product"
-                    >
-                      +
-                    </button>
-                  )}
-                </div>
-              </div>
+              />
             );
           })}
         </div>
